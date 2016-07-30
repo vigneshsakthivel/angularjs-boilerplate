@@ -14,6 +14,7 @@ module.exports = function ( grunt ) {
   grunt.loadNpmTasks('grunt-karma');
   grunt.loadNpmTasks('grunt-ng-annotate');
   grunt.loadNpmTasks('grunt-html2js');
+  grunt.loadNpmTasks('grunt-contrib-symlink');
 
 
   /**
@@ -64,7 +65,7 @@ module.exports = function ( grunt ) {
       build_app_assets: {
         files: [
           { 
-            src: [ '**' ],
+            src: [ '**', '!**/*.css', '!**/css' ],
             dest: '<%= build_dir %>/assets/',
             cwd: 'src/assets',
             expand: true
@@ -274,6 +275,31 @@ module.exports = function ( grunt ) {
         dest: '<%= build_dir %>/templates-common.js'
       }
     },
+    
+    symlink : {
+      options : {
+        // Enable overwrite to delete symlinks before recreating them
+        overwrite : true,
+        // Enable force to overwrite symlinks outside the current working
+        // directory
+        force : false
+      },
+      expanded: {
+        files: [
+          // All child files and directories in "source", starting with "foo-" will
+          // be symlinked into the "build" directory, with the leading "source"
+          // stripped off.
+          {
+            expand: true,
+            overwrite: false,
+            cwd: '<%= compile_dir %>/assets',
+            src: ['*'],
+            dest: '<%= compile_dir %>',
+            filter: 'isDirectory'
+          }
+        ]
+      },
+    },
 
     /**
      * The Karma configurations.
@@ -473,7 +499,7 @@ module.exports = function ( grunt ) {
    * minifying your code.
    */
   grunt.registerTask( 'compile', [
-    'copy:compile_assets', 'concat:compile_css', 'cssmin:compile', 'ngAnnotate', 'concat:compile_js', 'uglify', 'index:compile'
+    'copy:compile_assets', 'concat:compile_css', 'cssmin:compile', 'ngAnnotate', 'concat:compile_js', 'uglify', 'symlink:expanded', 'index:compile'
   ]);
 
   /**

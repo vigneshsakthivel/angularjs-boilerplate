@@ -22,6 +22,7 @@
     "grunt-html2js": "^0.3.6",
     "grunt-karma": "^2.0.0",
     "grunt-ng-annotate": "^2.0.2",
+    "grunt-contrib-symlink": "1.0.0",
     "karma": "^0.13.0",
     "karma-firefox-launcher": "^1.0.0",
     "karma-jasmine": "^0.1.0"
