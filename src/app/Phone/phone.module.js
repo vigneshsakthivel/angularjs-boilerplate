@@ -10,15 +10,17 @@ angular.module('app.phone', [
 	      controller: 'phoneListController',
 	      templateUrl: 'Phone/View/list.tpl.html'
 	    }
-	  },  
+	  },
+	  data:{ pageTitle: 'Home' }
     }).state( 'phoneDetails', {
-	  url: '/phones/:phoneId',
+	  url: '/phones/:id',
 	  views: {
 	    "main": {
 	      controller: 'phoneDetailsController',
 	      templateUrl: 'Phone/View/details.tpl.html'
 	    }
-	  },  
+	  },
+	  data:{ pageTitle: 'Phone Details' }
     });
   }
 );
