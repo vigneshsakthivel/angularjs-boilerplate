@@ -24,7 +24,7 @@ module.exports = function ( karma ) {
       'src/assets/**/*.js'
     ],
     frameworks: [ 'jasmine' ],
-    plugins: [ 'karma-jasmine', 'karma-firefox-launcher'],
+    lugins: [ 'karma-jasmine', 'karma-phantomjs-launcher'],
 
     /**
      * How to report, by default.
@@ -58,8 +58,21 @@ module.exports = function ( karma ) {
      * the aesthetic advantage of not launching a browser every time you save.
      */
     browsers: [
-      'Firefox'
-    ]
+      'PhantomJS'
+    ],
+    
+    reporters: ['progress', 'junit'],
+    
+    // junit configuration 
+    junitReporter: {
+      outputDir: '<%= logsDir %>', 
+      outputFile: 'test-results.xml', 
+      suite: '<%= pkg.name %>-<%= pkg.version %>', 
+      useBrowserName: false, 
+      nameFormatter: undefined, 
+      classNameFormatter: undefined, 
+      properties: {} 
+    }
   });
 };
 

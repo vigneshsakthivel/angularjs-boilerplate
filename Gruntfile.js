@@ -15,6 +15,8 @@ module.exports = function ( grunt ) {
   grunt.loadNpmTasks('grunt-ng-annotate');
   grunt.loadNpmTasks('grunt-html2js');
   grunt.loadNpmTasks('grunt-contrib-symlink');
+  grunt.loadNpmTasks('grunt-contrib-connect');
+  grunt.loadNpmTasks('grunt-protractor-runner');
 
 
   /**
@@ -53,7 +55,8 @@ module.exports = function ( grunt ) {
      */
     clean: [ 
       '<%= build_dir %>', 
-      '<%= compile_dir %>'
+      '<%= compile_dir %>',
+      '<%= build_logs %>'
     ],
 
     /**
@@ -235,6 +238,8 @@ module.exports = function ( grunt ) {
         'Gruntfile.js'
       ],
       options: {
+        reporter: 'checkstyle',
+        reporterOutput: '<%= build_logs %>/lint.xml',
         curly: true,
         immed: true,
         newcap: true,
@@ -372,8 +377,19 @@ module.exports = function ( grunt ) {
           '<%= vendor_files.js %>',
           '<%= html2js.app.dest %>',
           '<%= html2js.common.dest %>',
-          '<%= test_files.js %>'
+          '<%= unit_test_files.js %>'
         ]
+      }
+    },
+    
+    /**
+     * This task compiles the protactor template so that changes to its file
+     * array don't have to be managed manually.
+     */
+    protactorconfig : {
+      unit : {
+        dir : '<%= build_dir %>',
+        src : [ '<%= e2e_test_files.js %>' ]
       }
     },
 
@@ -457,17 +473,50 @@ module.exports = function ( grunt ) {
        */
       jsunit: {
         files: [
-          '<%= app_files.jsunit %>'
+          '<%= app_files.jsunit %>',
+          '<%= app_files.jse2e %>'
         ],
-        tasks: [ 'jshint:test', 'karma:unit:run' ],
+        tasks: [ 'jshint:test', 'karma:unit:run', 'protractor:e2e' ],
         options: {
           livereload: false
+        }
+      }
+    },
+
+    protractor : {
+      options : {
+        // Location of your protractor config file
+        configFile : "<%= build_dir %>/protractor-conf.js",
+        noColor : false,
+        args : {}
+      },
+      e2e : {
+        options : {
+          keepAlive : false
+        }
+      },
+      continuous : {
+        options : {
+          keepAlive : true
+        }
+      }
+    },
+
+    connect : {
+      options : {
+        port : 8080,
+        hostname : 'localhost'
+      },
+      test : {
+        options : {
+          // set the location of the application files
+          base : [ '<%= build_dir %>' ]
         }
       }
     }
   };
 
-  grunt.initConfig( grunt.util._.extend( taskConfig, userConfig ) );
+  grunt.initConfig(grunt.util._.extend(taskConfig, userConfig));
 
   /**
    * In order to make it safe to just compile or copy *only* what was changed,
@@ -476,8 +525,8 @@ module.exports = function ( grunt ) {
    * `delta`) and then add a new task called `watch` that does a clean build
    * before watching for changes.
    */
-  grunt.renameTask( 'watch', 'delta' );
-  grunt.registerTask( 'watch', [ 'build', 'karma:unit', 'delta' ] );
+  grunt.renameTask('watch', 'delta');
+  grunt.registerTask('watch', [ 'build', 'karma:unit', 'delta' ]);
 
   /**
    * The default task is to build and compile.
@@ -487,62 +536,63 @@ module.exports = function ( grunt ) {
   /**
    * The `build` task gets your app ready to run for development and testing.
    */
-  grunt.registerTask( 'build', [
-    'clean', 'html2js', 'jshint', 'copy:build_app_assets',
-    'concat:build_css', 'copy:build_vendor_assets', 'copy:build_appjs', 
-    'copy:build_vendorjs', 'copy:build_vendorcss', 'index:build', 'karmaconfig',
-    'karma:continuous' 
-  ]);
+  grunt.registerTask( 'build', ['clean', 'html2js', 'jshint',
+      'copy:build_app_assets','concat:build_css', 'copy:build_vendor_assets',
+      'copy:build_appjs', 'copy:build_vendorjs', 'copy:build_vendorcss',
+      'index:build', 'karmaconfig', 'protactorconfig', 'karma:continuous',
+      'connect:test', 'protractor:e2e' ]);
 
   /**
    * The `compile` task gets your app ready for deployment by concatenating and
    * minifying your code.
    */
-  grunt.registerTask( 'compile', [
-    'copy:compile_assets', 'concat:compile_css', 'cssmin:compile', 'ngAnnotate', 'concat:compile_js', 'uglify', 'symlink:expanded', 'index:compile'
+  grunt.registerTask( 'compile', ['copy:compile_assets', 'concat:compile_css',
+      'cssmin:compile', 'ngAnnotate', 'concat:compile_js', 'uglify',
+      'symlink:expanded', 'index:compile'
   ]);
 
   /**
    * A utility function to get all app JavaScript sources.
    */
-  function filterForJS ( files ) {
-    return files.filter( function ( file ) {
-      return file.match( /\.js$/ );
+  function filterForJS(files) {
+    return files.filter(function(file) {
+      return file.match(/\.js$/);
     });
   }
 
   /**
    * A utility function to get all app CSS sources.
    */
-  function filterForCSS ( files ) {
-    return files.filter( function ( file ) {
-      return file.match( /\.css$/ );
+  function filterForCSS(files) {
+    return files.filter(function(file) {
+      return file.match(/\.css$/);
     });
   }
 
-  /** 
+  /**
    * The index.html template includes the stylesheet and javascript sources
    * based on dynamic names calculated in this Gruntfile. This task assembles
    * the list into variables for the template to use and then runs the
    * compilation.
    */
-  grunt.registerMultiTask( 'index', 'Process index.html template', function () {
-    var dirRE = new RegExp( '^('+grunt.config('build_dir')+'|'+grunt.config('compile_dir')+')\/', 'g' );
+  grunt.registerMultiTask('index', 'Process index.html template', function() {
+    var dirRE = new RegExp('^(' + grunt.config('build_dir') + '|' + grunt.config('compile_dir') + ')\/', 'g');
 
-    var jsFiles = filterForJS( this.filesSrc ).map( function ( file ) {
-      return file.replace( dirRE, '' );
-    });
-    var cssFiles = filterForCSS( this.filesSrc ).map( function ( file ) {
-      return file.replace( dirRE, '' );
+    var jsFiles = filterForJS(this.filesSrc).map(function(file) {
+      return file.replace(dirRE, '');
     });
 
-    grunt.file.copy('src/index.html', this.data.dir + '/index.html', { 
-      process: function ( contents, path ) {
-        return grunt.template.process( contents, {
+    var cssFiles = filterForCSS(this.filesSrc).map(function(file) {
+      return file.replace(dirRE, '');
+    });
+
+    grunt.file.copy('src/index.html', this.data.dir + '/index.html', {
+      process: function(contents, path) {
+        return grunt.template.process(contents, {
           data: {
             scripts: jsFiles,
             styles: cssFiles,
-            version: grunt.config( 'pkg.version' )
+            version: grunt.config('pkg.version')
           }
         });
       }
@@ -554,18 +604,38 @@ module.exports = function ( grunt ) {
    * run, we use grunt to manage the list for us. The `karma/*` files are
    * compiled as grunt templates for use by Karma. Yay!
    */
-  grunt.registerMultiTask( 'karmaconfig', 'Process karma config templates', function () {
-    var jsFiles = filterForJS( this.filesSrc );
-
-    grunt.file.copy( 'karma/karma-unit.tpl.js', grunt.config( 'build_dir' ) + '/karma-unit.js', { 
-      process: function ( contents, path ) {
-        return grunt.template.process( contents, {
+  grunt.registerMultiTask('karmaconfig', 'Process karma config templates', function() {
+    var jsFiles = filterForJS(this.filesSrc);
+    grunt.file.copy('karma/karma-unit.tpl.js', grunt.config('build_dir') + '/karma-unit.js', {
+      process: function(contents, path) {
+        return grunt.template.process(contents, {
           data: {
-            scripts: jsFiles
+            scripts: jsFiles,
+            pkg: grunt.config('pkg'),
+            logsDir: grunt.config('build_logs')
           }
         });
       }
     });
   });
 
-};
+  /**
+   * In order to avoid having to specify manually the files needed for protactor
+   * to run, we use grunt to manage the list for us. The `protactor/*` files are
+   * compiled as grunt templates for use by Karma. Yay!
+   */
+  grunt.registerMultiTask('protactorconfig', 'Process ptotactor config templates', function() {
+    var jsFiles = filterForJS(this.filesSrc);
+    grunt.file.copy('protractor/protractor-conf.tpl.js', grunt.config('build_dir') + '/protractor-conf.js', {
+      process : function(contents, path) {
+        return grunt.template.process(contents, {
+          data : {
+            scripts : jsFiles,
+            pkg: grunt.config('pkg'),
+            logsDir: grunt.config('build_logs')
+           }
+        });
+      }
+    });
+  });
+}
