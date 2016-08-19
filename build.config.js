@@ -9,6 +9,7 @@ module.exports = {
    */
   build_dir: 'build',
   compile_dir: 'bin',
+  build_logs: 'build-logs',
 
   /**
    * This is a collection of file patterns that refer to our app code (the
@@ -22,6 +23,7 @@ module.exports = {
   app_files: {
     js: [ 'src/**/*.js', '!src/**/*.spec.js', '!src/assets/**/*.js' ],
     jsunit: [ 'src/**/*.spec.js' ],
+    jse2e: [ 'src/**/*.scenario.js' ],
     
     coffee: [ 'src/**/*.coffee', '!src/**/*.spec.coffee' ],
     coffeeunit: [ 'src/**/*.spec.coffee' ],
@@ -35,9 +37,17 @@ module.exports = {
   /**
    * This is a collection of files used during testing only.
    */
-  test_files: {
+  unit_test_files: {
     js: [
       'vendor/angular-mocks/angular-mocks.js'
+    ]
+  },
+  
+  /**
+   * This is a collection of files used during testing only.
+   */
+  e2e_test_files: {
+    js: [
     ]
   },
 
