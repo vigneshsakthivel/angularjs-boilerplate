@@ -612,7 +612,7 @@ module.exports = function ( grunt ) {
           data: {
             scripts: jsFiles,
             pkg: grunt.config('pkg'),
-            logsDir: grunt.config('build_logs')
+            logsDir: grunt.config('build_logs') + '/tests/'
           }
         });
       }
@@ -632,7 +632,7 @@ module.exports = function ( grunt ) {
           data : {
             scripts : jsFiles,
             pkg: grunt.config('pkg'),
-            logsDir: grunt.config('build_logs')
+            logsDir: grunt.config('build_logs') + '/tests/'
            }
         });
       }
